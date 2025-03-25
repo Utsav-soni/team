@@ -1,0 +1,10 @@
+streamlit
+torch
+transformers
+numpy
+pandas
+matplotlib
+seaborn
+altair
+langchain-groq
+python-dotenv
