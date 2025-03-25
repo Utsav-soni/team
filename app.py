@@ -3,12 +3,7 @@ import re
 import io
 import base64
 import streamlit as st
-from transformers import (
-    AutoModelForSequenceClassification, 
-    AutoTokenizer, 
-    AutoModelForCausalLM,
-    GPT2Tokenizer
-)
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer
 import torch
 import numpy as np
 import pandas as pd
