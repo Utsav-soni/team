@@ -679,11 +679,11 @@ def main():
             # Display images in a grid layout
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.image(image1, caption="Image 1", use_column_width=True)
+                st.image(image1, caption="Image 1", use_container_width=True)
             with col2:
-                st.image(image2, caption="Image 2", use_column_width=True)
+                st.image(image2, caption="Image 2", use_container_width=True)
             with col3:
-                st.image(image3, caption="Image 3", use_column_width=True)
+                st.image(image3, caption="Image 3", use_container_width=True)
 
         # Links Section
         with st.expander("Useful Links 🔗", expanded=False):
