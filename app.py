@@ -43,6 +43,9 @@ st.set_page_config(
 # Custom CSS for better styling
 st.markdown("""
 <style>
+    .stAppHeader.st-emotion-cache-12fmjuu.e4hpqof0 {
+        display: none !important;
+    }
     .main-header {
         font-size: 2.5rem;
         color: #1E3A8A;
