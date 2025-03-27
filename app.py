@@ -384,7 +384,7 @@ def main():
                 st.session_state.text_results = state['results']
                 del st.session_state.processing_text
             else:
-                st.experimental_rerun()
+                st.rerun()
         # Handle analysis initiation
         # if analyze_button and text_input:
         #     with st.spinner("Preparing analysis..."):
@@ -581,7 +581,7 @@ def main():
                 st.session_state.file_results = state['results']
                 del st.session_state.processing_file
             else:
-                st.experimental_rerun()
+                st.rerun()
 
         # Display file results
         file_results = []
