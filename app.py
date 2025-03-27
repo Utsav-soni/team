@@ -485,17 +485,7 @@ def main():
                 st.dataframe(results_df, use_container_width=True)
                 st.markdown(create_download_link(results_df), unsafe_allow_html=True)
             
-            # Preserve original summary interface
-            if 'file_results' in st.session_state:
-                st.subheader("Summary")
-                fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.pyplot(fig1)
-                with col2:
-                    st.altair_chart(confidence_hist, use_container_width=True)
-                st.dataframe(prediction_counts, use_container_width=True)
-            
+           
             for result in file_results:
                 with st.container():
                     st.markdown(f"""
@@ -515,8 +505,19 @@ def main():
                         <p><strong>Reasoning:</strong> {result['reasoning']}</p>
                     </div>
                     """, unsafe_allow_html=True)
-            
-          
+                    
+            # Preserve original summary interface
+            if 'file_results' in st.session_state:
+                st.subheader("Summary")
+                fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.pyplot(fig1)
+                with col2:
+                    st.altair_chart(confidence_hist, use_container_width=True)
+                st.dataframe(prediction_counts, use_container_width=True)
+
+             
 # Tab 3: About
     with tab3:
         # Custom CSS for styling
