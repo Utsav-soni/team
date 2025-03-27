@@ -15,7 +15,10 @@ from langsmith import traceable
 from PIL import Image
 from langchain_groq import ChatGroq
 import os
-from dotenv import load_dotenv      
+from dotenv import load_dotenv    
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+  
 # Load environment variables
 load_dotenv()
 
@@ -96,7 +99,7 @@ LABELS = ["answer", "non-answer"]
 @st.cache_resource
 def load_models():
     """Load and cache the models to avoid reloading on each rerun"""
-    st.info("Loading models from Hugging Face...")
+    st.info("Successfully loaded gpt-2 Fine-tuned model by Team Fintech Mavericks!")
     
     # Directly specify your Hugging Face model repository
     model_repo = "UtsavS/financial-earnings-call-classifier-final"
@@ -133,7 +136,7 @@ def classify_text(text, classifier_model, tokenizer):
     return LABELS[predicted_class], confidence
 
 llm = ChatGroq(
-    model="llama-3.1-8b-instant" ,#"deepseek-r1-distill-qwen-32b",
+    model="llama-3.1-8b-instant" ,
     temperature=0,
     max_tokens=None,
     timeout=None,
@@ -245,18 +248,23 @@ def create_summary_charts(results):
     total = prediction_counts['Count'].sum()
     prediction_counts['Percentage'] = (prediction_counts['Count'] / total * 100).round(1)
     
+    # Explicitly assign colors to categories
+    color_map = {'answer': '#10B981', 'non-answer': '#EF4444'}
+    prediction_counts['Color'] = prediction_counts['Category'].map(color_map)
+    
     # Create pie chart
     fig1, ax1 = plt.subplots(figsize=(8, 8))
-    colors = ['#10B981', '#EF4444'] if 'answer' in prediction_counts['Category'].values else ['#EF4444']
     ax1.pie(
         prediction_counts['Count'], 
         labels=prediction_counts['Category'], 
         autopct='%1.1f%%',
         startangle=90,
-        colors=colors,
+        colors=prediction_counts['Color'],  # Use explicitly mapped colors
         wedgeprops={'edgecolor': 'white', 'width': 0.6}
     )
     ax1.axis('equal')
+    # Remove the 'Color' column before returning the DataFrame
+    prediction_counts = prediction_counts.drop(columns=['Color'], errors='ignore')
     plt.title('Distribution of Answers vs Non-Answers', size=16)
     
     # Create confidence distribution chart
@@ -265,7 +273,7 @@ def create_summary_charts(results):
         y=alt.Y('count():Q', title='Count'),
         color=alt.Color('prediction:N', 
                       scale=alt.Scale(domain=['answer', 'non-answer'], 
-                                    range=['#10B981', '#EF4444'])),
+                                    range=['#10B981', '#EF4444'])),  # Ensure consistent color mapping
         tooltip=['prediction:N', 'count():Q']
     ).properties(
         title='Classification Distribution'
@@ -277,7 +285,7 @@ def create_summary_charts(results):
         y=alt.Y('count():Q', title='Frequency'),
         color=alt.Color('prediction:N',
                       scale=alt.Scale(domain=['answer', 'non-answer'], 
-                                    range=['#10B981', '#EF4444'])),
+                                    range=['#10B981', '#EF4444'])),  # Ensure consistent color mapping
         tooltip=['confidence:Q', 'count():Q']
     ).properties(
         title='Confidence Distribution'
@@ -385,8 +393,7 @@ def main():
                 del st.session_state.processing_text
             else:
                 st.rerun()
-       
-
+     
         # Display results
         results = []
         if 'processing_text' in st.session_state:
@@ -395,38 +402,48 @@ def main():
             results = st.session_state.text_results
 
         if results:
-            st.subheader("Analysis Results")
-            for result in results:
-                with st.container():
-                    st.markdown(f"""
-                    <div class="result-card">
-                        <p><strong>Statement:</strong> {result['text']}</p>
-                        <p>
-                            <strong>Classification:</strong> 
-                            <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
-                                {result['prediction'].upper()}
-                            </span>
-                            &nbsp;&nbsp;
-                            <strong>Confidence:</strong> 
-                            <span class="{get_confidence_class(result['confidence'])}">
-                                {result['confidence']*100:.1f}%
-                            </span>
-                        </p>
-                        <p><strong>Reasoning:</strong> {result['reasoning']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+            st.subheader("Analysis completed. Please check the results below:-")
             
-            # # Show summary if all results are ready
-            # if 'text_results' in st.session_state:
-            #     st.subheader("Summary")
-            #     fig1, chart, confidence_hist, prediction_counts = create_summary_charts(results)
-            #     col1, col2 = st.columns(2)
-            #     with col1:
-            #         st.pyplot(fig1)
-            #     with col2:
-            #         st.altair_chart(confidence_hist, use_container_width=True)
-            #     st.dataframe(prediction_counts, use_container_width=True)
-
+            with st.expander("View All Results in Table form"):
+                results_df = create_results_table(results)
+                st.dataframe(results_df, use_container_width=True)
+                st.markdown(create_download_link(results_df), unsafe_allow_html=True)
+            
+            with st.expander("View All Results Sepately"):    
+                for result in results:
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="result-card">
+                            <p><strong>Statement:</strong> {result['text']}</p>
+                            <p>
+                                <strong>Classification:</strong> 
+                                <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
+                                    {result['prediction'].upper()}
+                                </span>
+                                &nbsp;&nbsp;
+                                <strong>Confidence:</strong> 
+                                <span class="{get_confidence_class(result['confidence'])}">
+                                    {result['confidence']*100:.1f}%
+                                </span>
+                            </p>
+                            <p><strong>Reasoning:</strong> {result['reasoning']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+            
+            with st.expander("View All Analytics"):
+                # Preserve original summary interface
+                if 'text_results' in st.session_state:
+                    st.subheader("Summary")
+                    fig1, chart, confidence_hist, prediction_counts = create_summary_charts(results)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.pyplot(fig1)
+                    with col2:
+                        st.altair_chart(confidence_hist, use_container_width=True)
+                    st.dataframe(prediction_counts, use_container_width=True)
+             
+           
     with tab2:
         st.subheader("📁 Analyze Text File")
         uploaded_file = st.file_uploader("Upload a text file:", type=['txt'])
@@ -477,47 +494,53 @@ def main():
             file_results = st.session_state.processing_file['results']
         elif 'file_results' in st.session_state:
             file_results = st.session_state.file_results
-#Here
+#here
         if file_results:
-            st.subheader("Analysis Results")
-            with st.expander("View All Results"):
+            st.subheader("Analysis completed. Please check the results below:-")
+            with st.expander("View All Results in Table form"):
                 results_df = create_results_table(file_results)
                 st.dataframe(results_df, use_container_width=True)
                 st.markdown(create_download_link(results_df), unsafe_allow_html=True)
             
-           
-            for result in file_results:
-                with st.container():
-                    st.markdown(f"""
-                    <div class="result-card">
-                        <p><strong>Statement:</strong> {result['text']}</p>
-                        <p>
-                            <strong>Classification:</strong> 
-                            <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
-                                {result['prediction'].upper()}
-                            </span>
-                            &nbsp;&nbsp;
-                            <strong>Confidence:</strong> 
-                            <span class="{get_confidence_class(result['confidence'])}">
-                                {result['confidence']*100:.1f}%
-                            </span>
-                        </p>
-                        <p><strong>Reasoning:</strong> {result['reasoning']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-            # Preserve original summary interface
-            if 'file_results' in st.session_state:
-                st.subheader("Summary")
-                fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.pyplot(fig1)
-                with col2:
-                    st.altair_chart(confidence_hist, use_container_width=True)
-                st.dataframe(prediction_counts, use_container_width=True)
-
-             
+            with st.expander("View All Results Separately"):
+                for result in file_results:
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="result-card">
+                            <p><strong>Statement:</strong> {result['text']}</p>
+                            <p>
+                                <strong>Classification:</strong> 
+                                <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
+                                    {result['prediction'].upper()}
+                                </span>
+                                &nbsp;&nbsp;
+                                <strong>Confidence:</strong> 
+                                <span class="{get_confidence_class(result['confidence'])}">
+                                    {result['confidence']*100:.1f}%
+                                </span>
+                            </p>
+                            <p><strong>Reasoning:</strong> {result['reasoning']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            
+            with st.expander("View All Analytics"):
+                # Preserve original summary interface
+                if 'file_results' in st.session_state:
+                    st.subheader("Summary")
+                    fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.pyplot(fig1)
+                    with col2:
+                        st.altair_chart(confidence_hist, use_container_width=True)
+                    st.dataframe(prediction_counts, use_container_width=True)
+            
+        st.info("""
+            **Note**: Please upload a file containing only 20-25 lines to ensure a quick analysis. \n
+            This limitation is due to computational constraints in the deployment environment.
+            """)
+          
 # Tab 3: About
     with tab3:
         # Custom CSS for styling
@@ -600,15 +623,16 @@ def main():
             image1 = Image.open("images/team.jpg")  # Replace with your image path
             image2 = Image.open("images/team.jpg")  # Replace with your image path
             image3 = Image.open("images/team.jpg")  # Replace with your image path
-            
+
+
             # Display images in a grid layout
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.image(image1, caption="Image 1", use_column_width=True)
+                st.image(image1, caption="Image 1", use_container_width=True)
             with col2:
-                st.image(image2, caption="Image 2", use_column_width=True)
+                st.image(image2, caption="Image 2", use_container_width=True)
             with col3:
-                st.image(image3, caption="Image 3", use_column_width=True)
+                st.image(image3, caption="Image 3", use_container_width=True)
 
         # Links Section
         with st.expander("Useful Links 🔗", expanded=False):
