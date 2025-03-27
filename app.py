@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 import altair as alt
-
+from langsmith import traceable
+from PIL import Image
 from langchain_groq import ChatGroq
 import os
 from dotenv import load_dotenv      
@@ -20,8 +21,8 @@ load_dotenv()
 
 #  API keys
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-LANGSMITH_API_KEY =  os.getenv("LANGSMITH_API_KEY")                 
-LANGSMITH_TRACING = "true"
+LANGSMITH_API_KEY =  os.getenv("LANGSMITH_API_KEY")      
+
 
 if not GROQ_API_KEY:
     logging.error("GROQ_API_KEY not set in the environment variables")
@@ -91,50 +92,31 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Define labels
 LABELS = ["answer", "non-answer"]
 
+
 @st.cache_resource
 def load_models():
     """Load and cache the models to avoid reloading on each rerun"""
-    st.info("Loading models (this may take a minute)...")
+    st.info("Loading models from Hugging Face...")
     
-    # Define model path based on deployment environment
-    # For local dev: use a local path
-    # For deployment: use a path that works in the Streamlit environment
-    model_path = os.getenv("MODEL_PATH", "financial-earnings-call-classifier-final")
-    
-    # Check if model exists, otherwise download from Hugging Face
-    if not os.path.exists(model_path):
-        st.warning(f"Model not found at {model_path}, using default model from Hugging Face")
-        # Fall back to a default model - this is just an example, replace with your actual model on Hugging Face
-        model_path = "distilbert-base-uncased"
+    # Directly specify your Hugging Face model repository
+    model_repo = "UtsavS/financial-earnings-call-classifier-final"
     
     try:
-        # Load the classification model
-        classifier_model = AutoModelForSequenceClassification.from_pretrained(model_path)
-        
-        # Try multiple approaches to load the tokenizer
-        try:
-            # Approach 1: Load directly from model path
-            tokenizer = AutoTokenizer.from_pretrained(model_path)
-        except Exception as e:
-            try:
-                # Approach 2: Try GPT2Tokenizer explicitly
-                tokenizer = GPT2Tokenizer.from_pretrained(model_path)
-            except Exception:
-                # Approach 3: Fall back to standard GPT2 tokenizer
-                tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        # Load the classification model from Hugging Face
+        classifier_model = AutoModelForSequenceClassification.from_pretrained(model_repo)
+        tokenizer = AutoTokenizer.from_pretrained(model_repo)
         
         # Load GPT-2 for text generation (reasoning)
         gpt2_model = AutoModelForCausalLM.from_pretrained("gpt2")
         gpt2_tokenizer = AutoTokenizer.from_pretrained("gpt2")
         
         return classifier_model, tokenizer, gpt2_model, gpt2_tokenizer
+
     except Exception as e:
-        st.error(f"Error loading models: {e}")
-        # Return dummy models for UI testing when real models can't be loaded
-        if "test_mode" in st.session_state and st.session_state.test_mode:
-            return None, None, None, None
-        else:
-            raise
+        st.error(f"Error loading models: {str(e)}")
+        st.warning("Enabling test mode with mock results for UI demonstration.")
+        st.session_state.test_mode = True
+        return None, None, None, None
 
 def classify_text(text, classifier_model, tokenizer):
     """Classify a piece of text using the loaded model"""
@@ -150,27 +132,6 @@ def classify_text(text, classifier_model, tokenizer):
     
     return LABELS[predicted_class], confidence
 
-# def generate_reasoning(text, prediction, gpt2_model, gpt2_tokenizer):
-#     # """Generate an explanation for why the text was classified in a certain way"""
-#     # reasoning_prompt = f"Explain in detail that why the statement: '{text}' was classified as '{prediction}' because "
-#     # input_ids = gpt2_tokenizer.encode(reasoning_prompt, return_tensors="pt")
-    
-#     # with torch.no_grad():
-#     #     output_ids = gpt2_model.generate(
-#     #         input_ids, 
-#     #         max_length=128, 
-#     #         num_return_sequences=1, 
-#     #         pad_token_id=gpt2_tokenizer.eos_token_id
-#     #     )
-    
-#     # reasoning_text = gpt2_tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    
-#     # # Clean up the reasoning text a bit
-#     # reasoning_text = reasoning_text.replace(reasoning_prompt, "")
-    
-#     return reasoning_text
-
-
 llm = ChatGroq(
     model="llama-3.1-8b-instant" ,#"deepseek-r1-distill-qwen-32b",
     temperature=0,
@@ -178,7 +139,7 @@ llm = ChatGroq(
     timeout=None,
     max_retries=2,
 )
-
+@traceable  # Add this decorator
 def generate_reasoning(text, prediction):
     messages = [
     {
@@ -203,6 +164,7 @@ def generate_reasoning(text, prediction):
     # print("AI Response:", ai_msg)
     return ai_msg.content
 
+@traceable  # Add this decorator
 def classify_and_reason(text, classifier_model, tokenizer):
     """Classify text and generate reasoning in one step"""
     prediction, confidence = classify_text(text, classifier_model, tokenizer)
@@ -246,6 +208,9 @@ def split_text_into_sentences(text):
     
     return sentences
 
+
+
+@traceable  # Add this decorator
 def process_text(text, classifier_model, tokenizer):
     """Process a block of text by splitting it into sentences and analyzing each one"""
     sentences = split_text_into_sentences(text)
@@ -348,184 +313,6 @@ def create_download_link(df, filename="results.csv"):
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download results as CSV</a>'
     return href
 
-# def main():
-#     """Main function to run the Streamlit app"""
-#     # Test mode for when models can't be loaded
-#     if "test_mode" not in st.session_state:
-#         st.session_state.test_mode = False
-    
-#     # App header
-#     st.markdown('<h1 class="main-header">Analyzer</h1>', unsafe_allow_html=True)
-#     st.markdown('<p class="sub-header">Analyze Distinguish between answers and non-answers</p>', unsafe_allow_html=True)
-    
-#     # Load models - handle errors gracefully
-#     try:
-#         classifier_model, tokenizer, gpt2_model, gpt2_tokenizer = load_models()
-#     except Exception as e:
-#         st.error(f"Failed to load models: {e}")
-#         st.warning("Enabling test mode with mock results for UI demonstration.")
-#         st.session_state.test_mode = True
-#         classifier_model, tokenizer, gpt2_model, gpt2_tokenizer = None, None, None, None
-    
-#     # Create tabs
-#     tab1, tab2, tab3 = st.tabs(["Analyze Text", "Analyze File", "About"])
-    
-#     # Tab 1: Analyze Text
-#     with tab1:
-#         st.subheader("📝 Analyze Specific Statements")
-        
-#         # Text input area
-#         text_input = st.text_area(
-#             "Enter a statement or paragraph to analyze:",
-#             height=150,
-#             placeholder="Paste the earnings call statement or paragraph here..."
-#         )
-        
-#         col1, col2 = st.columns([1, 5])
-#         with col1:
-#             analyze_button = st.button("Analyze Text", type="primary")
-        
-#         # Process when button is clicked
-#         if analyze_button and text_input:
-#             with st.spinner("Analyzing text..."):
-#                 results = process_text(text_input, classifier_model,tokenizer)
-                
-#                 # Store results in session state
-#                 st.session_state.text_results = results
-        
-#         # Display results if available
-#         if 'text_results' in st.session_state and st.session_state.text_results:
-#             st.subheader("Analysis Results")
-            
-#             # Display each result in a card
-#             for result in st.session_state.text_results:
-#                 with st.container():
-#                     st.markdown(f"""
-#                     <div class="result-card">
-#                         <p><strong>Statement:</strong> {result['text']}</p>
-#                         <p>
-#                             <strong>Classification:</strong> 
-#                             <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
-#                                 {result['prediction'].upper()}
-#                             </span>
-#                             &nbsp;&nbsp;
-#                             <strong>Confidence:</strong> 
-#                             <span class="{get_confidence_class(result['confidence'])}">
-#                                 {result['confidence']*100:.1f}%
-#                             </span>
-#                         </p>
-#                         <p><strong>Reasoning:</strong> {result['reasoning']}</p>
-#                     </div>
-#                     """, unsafe_allow_html=True)
-            
-#             # Create summary if there are multiple results
-#             if len(st.session_state.text_results) > 1:
-#                 st.subheader("Summary")
-                
-#                 # Create visualization columns
-#                 col1, col2 = st.columns(2)
-                
-#                 with col1:
-#                     fig1, chart, confidence_hist, prediction_counts = create_summary_charts(st.session_state.text_results)
-#                     st.pyplot(fig1)
-                
-#                 with col2:
-#                     st.altair_chart(confidence_hist, use_container_width=True)
-                
-#                 # Show stats as a table
-#                 st.dataframe(prediction_counts, use_container_width=True)
-    
-#     # Tab 2: Analyze File
-#     with tab2:
-#         st.subheader("📄 Analyze Text File")
-        
-#         # File uploader
-#         uploaded_file = st.file_uploader("Upload a text file:", type=['txt'])
-        
-#         if uploaded_file is not None:
-#             # Read file content
-#             file_content = uploaded_file.getvalue().decode("utf-8")
-            
-#             # Show a preview
-#             with st.expander("File Preview", expanded=False):
-#                 st.text(file_content)
-            
-#             # Analyze button
-#             analyze_file_button = st.button("Analyze File", type="primary")
-            
-#             if analyze_file_button:
-#                 with st.spinner("Analyzing file..."):
-#                     results = process_text(file_content, classifier_model, tokenizer)
-                    
-#                     # Store results in session state
-#                     st.session_state.file_results = results
-        
-#         # Display results if available
-#         if 'file_results' in st.session_state and st.session_state.file_results:
-#             st.subheader("Analysis Results")
-            
-#             # Create summary visualizations
-#             fig1, chart, confidence_hist, prediction_counts = create_summary_charts(st.session_state.file_results)
-            
-#             # Use columns for charts
-#             col1, col2 = st.columns(2)
-            
-#             with col1:
-#                 st.pyplot(fig1)
-            
-#             with col2:
-#                 st.altair_chart(confidence_hist, use_container_width=True)
-            
-#             # Display summary stats
-#             st.subheader("Summary Statistics")
-#             st.dataframe(prediction_counts, use_container_width=True)
-            
-#             # Show detailed results in an expander
-#             with st.expander("View All Results"):
-#                 # Create a pandas DataFrame and display it
-#                 results_df = create_results_table(st.session_state.file_results)
-#                 st.dataframe(results_df, use_container_width=True)
-                
-#                 # Add download link for CSV
-#                 st.markdown(create_download_link(results_df), unsafe_allow_html=True)
-    
-#     # Tab 3: About
-#     with tab3:
-#         st.subheader("ℹ️ About This Tool")
-        
-#         st.markdown("""                   
-#         ### What This Tool Does
-        
-#         The Financial Earnings Call Analyzer helps you understand and analyze statements made during financial earnings calls. It uses natural language processing and machine learning to classify statements as:
-        
-#         - **Answers**: Substantive responses that provide useful information
-#         - **Non-answers**: Evasive, vague, or non-informative responses
-        
-#         ### How It Works
-        
-#         This tool uses a fine-tuned transformer model trained on a dataset of earnings call transcripts. The model has learned patterns typical of substantive answers versus non-answers or evasive responses.
-        
-#         For each analyzed statement, the tool provides:
-#         1. A classification (answer or non-answer)
-#         2. A confidence score
-#         3. A reasoning explanation for the classification
-        
-#         ### Use Cases
-        
-#         - Financial analysts reviewing earnings calls
-#         - Investors conducting company research
-#         - Corporate communications training
-#         - Financial journalism
-#         """)
-        
-#         st.info("""
-#         **Note**: This is an analysis tool and should be used as one input among many when making financial decisions. 
-#         Always consult with qualified financial professionals before making investment decisions.
-#         """)
-
-
-
-
 def main():
     """Main function to run the Streamlit app"""
     # Test mode for when models can't be loaded
@@ -620,16 +407,16 @@ def main():
                     </div>
                     """, unsafe_allow_html=True)
             
-            # Show summary if all results are ready
-            if 'text_results' in st.session_state:
-                st.subheader("Summary")
-                fig1, chart, confidence_hist, prediction_counts = create_summary_charts(results)
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.pyplot(fig1)
-                with col2:
-                    st.altair_chart(confidence_hist, use_container_width=True)
-                st.dataframe(prediction_counts, use_container_width=True)
+            # # Show summary if all results are ready
+            # if 'text_results' in st.session_state:
+            #     st.subheader("Summary")
+            #     fig1, chart, confidence_hist, prediction_counts = create_summary_charts(results)
+            #     col1, col2 = st.columns(2)
+            #     with col1:
+            #         st.pyplot(fig1)
+            #     with col2:
+            #         st.altair_chart(confidence_hist, use_container_width=True)
+            #     st.dataframe(prediction_counts, use_container_width=True)
 
     # # Tab 2: Analyze File
     # # with tab2:
@@ -806,33 +593,134 @@ def main():
                     """, unsafe_allow_html=True)
             
           
-                
-
-    # Tab 3: About
+# Tab 3: About
     with tab3:
-        st.subheader("ℹ️ About This Tool")
+        # Custom CSS for styling
         st.markdown("""
-        ### This tool is developed by Team: xyz.
-        ### What This Tool Does
-        The Financial Earnings Call Analyzer helps you understand and analyze statements made during financial earnings calls. It uses gpt2 fintuned on binary classification dataset to classify statements as:
-        - **Answers**: Substantive responses that provide useful information
-        - **Non-answers**: Evasive, vague, greetings, neutral or non-informative responses
-        ### How It Works
-        This tool uses a fine-tuned transformer model gpt2 trained on a dataset of earnings call transcripts. The model has learned patterns typical of substantive answers versus non-answers or evasive responses.
-        For each analyzed statement, the tool provides:
-        1. A classification (answer or non-answer)
-        2. A confidence score
-        3. A reasoning explanation for the classification
-        ### Use Cases
-        - Financial analysts reviewing earnings calls
-        - Investors conducting company research
-        - Corporate communications training
-        - Financial journalism
-        """)
+        <style>
+            .custom-expander {
+                background-color: #f0f8ff; /* Light blue */
+                padding: 10px;
+                border-radius: 10px;
+                margin-bottom: 10px;
+            }
+            .custom-expander:nth-child(2) {
+                background-color: #fff0f5; /* Lavender blush */
+            }
+            .custom-expander:nth-child(3) {
+                background-color: #f5f5dc; /* Beige */
+            }
+            .custom-expander:nth-child(4) {
+                background-color: #e6e6fa; /* Lavender */
+            }
+            .custom-expander:nth-child(5) {
+                background-color: #ffe4e1; /* Misty rose */
+            }
+            .custom-expander h3 {
+                color: #333;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Demo Results Section
+        with st.expander("About this tool 📊", expanded=False):
+            st.markdown("""
+            <div class="custom-expander">
+                <h3>About this Tool</h3>
+                <p>This tool is desgined to help earning call analyzers with intuitive and interactive interface !  </p>
+            </div>
+            """, unsafe_allow_html=True)
+            # st.markdown("""
+            # <div class="custom-expander">
+            #     <h3>Demo Results</h3>
+            #     <p>Below are some sample results from our tool:</p>
+            #     <table style="width:100%; border-collapse:collapse;">
+            #         <tr>
+            #             <th style="border:1px solid #ddd; padding:8px;">Statement</th>
+            #             <th style="border:1px solid #ddd; padding:8px;">Classification</th>
+            #             <th style="border:1px solid #ddd; padding:8px;">Confidence Score</th>
+            #         </tr>
+            #         <tr>
+            #             <td style="border:1px solid #ddd; padding:8px;">"We exceeded our revenue targets this quarter."</td>
+            #             <td style="border:1px solid #ddd; padding:8px;">Answer</td>
+            #             <td style="border:1px solid #ddd; padding:8px;">92%</td>
+            #         </tr>
+            #         <tr>
+            #             <td style="border:1px solid #ddd; padding:8px;">"Thank you for joining the call."</td>
+            #             <td style="border:1px solid #ddd; padding:8px;">Non-answer</td>
+            #             <td style="border:1px solid #ddd; padding:8px;">85%</td>
+            #         </tr>
+            #     </table>
+            # </div>
+            # """, unsafe_allow_html=True)
+
+        # About Team Section
+        with st.expander("About Team 🌟", expanded=False):
+            st.markdown("""
+            <div class="custom-expander">
+                <h3>About Our Team</h3>
+                <p>Team XYZ is a group of passionate data scientists, financial analysts, and software engineers dedicated to building innovative tools for financial analysis.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Images Section
+        with st.expander("Images 📸", expanded=False):
+            st.markdown("""
+            <div class="custom-expander">
+                <h3>Gallery</h3>
+                <p>Here are some images related to our project:</p>
+            </div>
+            """, unsafe_allow_html=True)
+            # Load local images
+            image1 = Image.open(r"C:\\Users\\Utsav.Soni\\Desktop\\scrripts\\code\\images\\team.jpg")  # Replace with your image path
+            image2 = Image.open(r"C:\\Users\\Utsav.Soni\\Desktop\\scrripts\\code\\images\\team.jpg")  # Replace with your image path
+            image3 = Image.open(r"C:\\Users\\Utsav.Soni\\Desktop\\scrripts\\code\\images\\team.jpg")  # Replace with your image path
+
+            # Display images in a grid layout
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.image(image1, caption="Image 1", use_column_width=True)
+            with col2:
+                st.image(image2, caption="Image 2", use_column_width=True)
+            with col3:
+                st.image(image3, caption="Image 3", use_column_width=True)
+
+        # Links Section
+        with st.expander("Useful Links 🔗", expanded=False):
+            st.markdown("""
+            <div class="custom-expander">
+                <h3>Useful Links</h3>
+                <ul>
+                    <li>Presentation: <a href="https://github.com" target="_blank">Presentation</a></li>
+                    <li>Fine-Tuning Code: <a href="https://github.com" target="_blank">Fine-Tuning Code</a></li>
+                    <li>Web Intefce Code: <a href="https://github.com" target="_blank">Web Intefce Code</a></li>
+                    <li>Video Submission: <a href="https://github.com" target="_blank">Video Submission</a></li>
+
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Contact Section
+        with st.expander("Contact 📧", expanded=False):
+            st.markdown("""
+            <div class="custom-expander">
+                <h3>Contact Us</h3>
+                <p>If you have any questions or feedback, feel free to reach out:</p>
+                <ul>
+                    <li>Email: <a href="mailto:teamxyz@example.com">teamxyz@example.com</a></li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+        # Disclaimer
         st.info("""
         **Note**: This is an analysis tool and should be used as one input among many when making financial decisions. 
         Always consult with qualified financial professionals before making investment decisions.
         """)
-        
+
+ 
 if __name__ == "__main__":
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_PROJECT"] = "Earnings-Call"
+    os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
     main()
