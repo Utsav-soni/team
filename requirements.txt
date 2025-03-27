@@ -8,3 +8,4 @@ seaborn
 altair
 langchain-groq
 python-dotenv
+pillow
