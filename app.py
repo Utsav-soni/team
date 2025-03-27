@@ -385,34 +385,7 @@ def main():
                 del st.session_state.processing_text
             else:
                 st.rerun()
-        # Handle analysis initiation
-        # if analyze_button and text_input:
-        #     with st.spinner("Preparing analysis..."):
-        #         sentences = split_text_into_sentences(text_input)
-        #         if sentences:
-        #             st.session_state.processing_text = {
-        #                 'sentences': sentences,
-        #                 'current_index': 0,
-        #                 'results': []
-        #             }
-        #         else:
-        #             st.warning("No valid sentences found to analyze.")
-
-        # # Handle ongoing processing
-        # if 'processing_text' in st.session_state:
-        #     state = st.session_state.processing_text
-        #     current_sentence = state['sentences'][state['current_index']]
-            
-        #     with st.spinner(f"Analyzing sentence {state['current_index']+1} of {len(state['sentences'])}..."):
-        #         result = classify_and_reason(current_sentence, classifier_model, tokenizer)
-        #         state['results'].append(result)
-        #         state['current_index'] += 1
-            
-        #     if state['current_index'] >= len(state['sentences']):
-        #         st.session_state.text_results = state['results']
-        #         del st.session_state.processing_text
-        #     else:
-        #         st.experimental_rerun()
+       
 
         # Display results
         results = []
@@ -454,91 +427,6 @@ def main():
             #         st.altair_chart(confidence_hist, use_container_width=True)
             #     st.dataframe(prediction_counts, use_container_width=True)
 
-    # # Tab 2: Analyze File
-    # # with tab2:
-    #     st.subheader("📁 Analyze Text File")
-    #     uploaded_file = st.file_uploader("Upload a text file:", type=['txt'])
-        
-    #     if uploaded_file is not None:
-    #         file_content = uploaded_file.getvalue().decode("utf-8")
-            
-    #         with st.expander("File Preview", expanded=False):
-    #             st.text(file_content)
-            
-    #         analyze_file_button = st.button(
-    #             "Analyze File", 
-    #             type="primary",
-    #             disabled='processing_file' in st.session_state
-    #         )
-            
-    #         if analyze_file_button:
-    #             with st.spinner("Preparing file analysis..."):
-    #                 sentences = split_text_into_sentences(file_content)
-    #                 if sentences:
-    #                     st.session_state.processing_file = {
-    #                         'sentences': sentences,
-    #                         'current_index': 0,
-    #                         'results': []
-    #                     }
-    #                 else:
-    #                     st.warning("No valid sentences found in file.")
-
-    #     # Handle file processing
-    #     if 'processing_file' in st.session_state:
-    #         state = st.session_state.processing_file
-    #         current_sentence = state['sentences'][state['current_index']]
-            
-    #         with st.spinner(f"Analyzing sentence {state['current_index']+1} of {len(state['sentences'])}..."):
-    #             result = classify_and_reason(current_sentence, classifier_model, tokenizer)
-    #             state['results'].append(result)
-    #             state['current_index'] += 1
-            
-    #         if state['current_index'] >= len(state['sentences']):
-    #             st.session_state.file_results = state['results']
-    #             del st.session_state.processing_file
-    #         else:
-    #             st.experimental_rerun()
-
-    #     # Display file results
-    #     file_results = []
-    #     if 'processing_file' in st.session_state:
-    #         file_results = st.session_state.processing_file['results']
-    #     elif 'file_results' in st.session_state:
-    #         file_results = st.session_state.file_results
-
-    #     if file_results:
-    #         st.subheader("Analysis Results")
-    #         for result in file_results:
-    #             with st.container():
-    #                 st.markdown(f"""
-    #                 <div class="result-card">
-    #                     <p><strong>Statement:</strong> {result['text']}</p>
-    #                     <p>
-    #                         <strong>Classification:</strong> 
-    #                         <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
-    #                             {result['prediction'].upper()}
-    #                         </span>
-    #                         &nbsp;&nbsp;
-    #                         <strong>Confidence:</strong> 
-    #                         <span class="{get_confidence_class(result['confidence'])}">
-    #                             {result['confidence']*100:.1f}%
-    #                         </span>
-    #                     </p>
-    #                     <p><strong>Reasoning:</strong> {result['reasoning']}</p>
-    #                 </div>
-    #                 """, unsafe_allow_html=True)
-            
-    #         # Show summary if all results are ready
-    #         if 'file_results' in st.session_state:
-    #             st.subheader("Summary")
-    #             fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
-    #             col1, col2 = st.columns(2)
-    #             with col1:
-    #                 st.pyplot(fig1)
-    #             with col2:
-    #                 st.altair_chart(confidence_hist, use_container_width=True)
-    #             st.dataframe(prediction_counts, use_container_width=True)
-    #             st.markdown(create_download_link(create_results_table(file_results)), unsafe_allow_html=True)
     with tab2:
         st.subheader("📁 Analyze Text File")
         uploaded_file = st.file_uploader("Upload a text file:", type=['txt'])
@@ -589,7 +477,7 @@ def main():
             file_results = st.session_state.processing_file['results']
         elif 'file_results' in st.session_state:
             file_results = st.session_state.file_results
-#here
+#Here
         if file_results:
             st.subheader("Analysis Results")
             with st.expander("View All Results"):
