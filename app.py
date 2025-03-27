@@ -620,9 +620,13 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             # Load local images
-            image1 = Image.open("images/team.jpg")  # Replace with your image path
-            image2 = Image.open("images/team.jpg")  # Replace with your image path
-            image3 = Image.open("images/team.jpg")  # Replace with your image path
+            image1 = Image.open(r"C:\\Users\\Utsav.Soni\\Desktop\\scrripts\\code\\images\\team.jpg")  # Replace with your image path
+            image2 = Image.open(r"C:\\Users\\Utsav.Soni\\Desktop\\scrripts\\code\\images\\team.jpg")  # Replace with your image path
+            image3 = Image.open(r"C:\\Users\\Utsav.Soni\\Desktop\\scrripts\\code\\images\\team.jpg")  # Replace with your image path
+                        # Load local images
+            # image1 = Image.open("images/team.jpg")  # Replace with your image path
+            # image2 = Image.open("images/team.jpg")  # Replace with your image path
+            # image3 = Image.open("images/team.jpg")  # Replace with your image path
 
 
             # Display images in a grid layout
