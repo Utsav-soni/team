@@ -186,28 +186,44 @@ def classify_and_reason(text, classifier_model, tokenizer):
         "reasoning": reasoning
     }
 
+# def split_text_into_sentences(text):
+#     """Split text into sentences with improved handling of special cases"""
+#     # Cleanup text
+#     text = text.replace('\n', ' ').strip()
+    
+#     # Handle common abbreviations to avoid splitting them
+#     text = re.sub(r'(Mr\.|Mrs\.|Dr\.|etc\.|i\.e\.|e\.g\.)', lambda m: m.group().replace('.', '<DOT>'), text)
+    
+#     # Split by common sentence terminators
+#     raw_sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s', text)
+    
+#     sentences = []
+#     for raw_sentence in raw_sentences:
+#         # Restore abbreviations
+#         raw_sentence = raw_sentence.replace('<DOT>', '.')
+        
+#         # Skip empty sentences
+#         if raw_sentence.strip() and len(raw_sentence.strip()) > 10:
+#            sentences.append(raw_sentence.strip())
+    
+#    return sentences
+
 def split_text_into_sentences(text):
     """Split text into sentences with improved handling of special cases"""
     # Cleanup text
     text = text.replace('\n', ' ').strip()
-    
     # Handle common abbreviations to avoid splitting them
     text = re.sub(r'(Mr\.|Mrs\.|Dr\.|etc\.|i\.e\.|e\.g\.)', lambda m: m.group().replace('.', '<DOT>'), text)
-    
     # Split by common sentence terminators
     raw_sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s', text)
-    
     sentences = []
     for raw_sentence in raw_sentences:
         # Restore abbreviations
         raw_sentence = raw_sentence.replace('<DOT>', '.')
-        
-        # Skip empty sentences
+        # Skip empty sentences and very short ones
         if raw_sentence.strip() and len(raw_sentence.strip()) > 10:
             sentences.append(raw_sentence.strip())
-    
     return sentences
-
 
 
 @traceable  # Add this decorator
