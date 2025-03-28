@@ -643,7 +643,7 @@ def main():
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.image(image1, caption="Dataset Distribution", use_container_width=True)
-                st.image(image4, caption="Model Evaluation", use_container_width=True
+                st.image(image4, caption="Model Evaluation", use_container_width=True)
             with col2:
                 st.image(image2, caption="Classification Report", use_container_width=True)
             with col3:
