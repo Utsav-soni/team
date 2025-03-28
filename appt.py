@@ -15,7 +15,10 @@ from langsmith import traceable
 from PIL import Image
 from langchain_groq import ChatGroq
 import os
-from dotenv import load_dotenv      
+from dotenv import load_dotenv    
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+  
 # Load environment variables
 load_dotenv()
 
@@ -32,7 +35,7 @@ if not GROQ_API_KEY:
     
 # Set up page configuration
 st.set_page_config(
-    page_title="Analyzer",
+    page_title="Analyzer by Fintech Mavericks",
     page_icon="📊",
     layout="wide"
 )
@@ -40,6 +43,9 @@ st.set_page_config(
 # Custom CSS for better styling
 st.markdown("""
 <style>
+    .stAppHeader.st-emotion-cache-12fmjuu.e4hpqof0 {
+        display: none !important;
+    }
     .main-header {
         font-size: 2.5rem;
         color: #1E3A8A;
@@ -96,7 +102,7 @@ LABELS = ["answer", "non-answer"]
 @st.cache_resource
 def load_models():
     """Load and cache the models to avoid reloading on each rerun"""
-    st.info("Loading models from Hugging Face...")
+    st.info("Successfully loaded gpt-2 Fine-tuned model by Team Fintech Mavericks!")
     
     # Directly specify your Hugging Face model repository
     model_repo = "UtsavS/financial-earnings-call-classifier-final"
@@ -133,7 +139,7 @@ def classify_text(text, classifier_model, tokenizer):
     return LABELS[predicted_class], confidence
 
 llm = ChatGroq(
-    model="llama-3.1-8b-instant" ,#"deepseek-r1-distill-qwen-32b",
+    model="llama-3.1-8b-instant" ,
     temperature=0,
     max_tokens=None,
     timeout=None,
@@ -186,44 +192,28 @@ def classify_and_reason(text, classifier_model, tokenizer):
         "reasoning": reasoning
     }
 
-# def split_text_into_sentences(text):
-#     """Split text into sentences with improved handling of special cases"""
-#     # Cleanup text
-#     text = text.replace('\n', ' ').strip()
-    
-#     # Handle common abbreviations to avoid splitting them
-#     text = re.sub(r'(Mr\.|Mrs\.|Dr\.|etc\.|i\.e\.|e\.g\.)', lambda m: m.group().replace('.', '<DOT>'), text)
-    
-#     # Split by common sentence terminators
-#     raw_sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s', text)
-    
-#     sentences = []
-#     for raw_sentence in raw_sentences:
-#         # Restore abbreviations
-#         raw_sentence = raw_sentence.replace('<DOT>', '.')
-        
-#         # Skip empty sentences
-#         if raw_sentence.strip() and len(raw_sentence.strip()) > 10:
-#            sentences.append(raw_sentence.strip())
-    
-#    return sentences
-
 def split_text_into_sentences(text):
     """Split text into sentences with improved handling of special cases"""
     # Cleanup text
     text = text.replace('\n', ' ').strip()
+    
     # Handle common abbreviations to avoid splitting them
     text = re.sub(r'(Mr\.|Mrs\.|Dr\.|etc\.|i\.e\.|e\.g\.)', lambda m: m.group().replace('.', '<DOT>'), text)
+    
     # Split by common sentence terminators
     raw_sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s', text)
+    
     sentences = []
     for raw_sentence in raw_sentences:
         # Restore abbreviations
         raw_sentence = raw_sentence.replace('<DOT>', '.')
-        # Skip empty sentences and very short ones
+        
+        # Skip empty sentences
         if raw_sentence.strip() and len(raw_sentence.strip()) > 10:
             sentences.append(raw_sentence.strip())
+    
     return sentences
+
 
 
 @traceable  # Add this decorator
@@ -261,18 +251,23 @@ def create_summary_charts(results):
     total = prediction_counts['Count'].sum()
     prediction_counts['Percentage'] = (prediction_counts['Count'] / total * 100).round(1)
     
+    # Explicitly assign colors to categories
+    color_map = {'answer': '#10B981', 'non-answer': '#EF4444'}
+    prediction_counts['Color'] = prediction_counts['Category'].map(color_map)
+    
     # Create pie chart
     fig1, ax1 = plt.subplots(figsize=(8, 8))
-    colors = ['#10B981', '#EF4444'] if 'answer' in prediction_counts['Category'].values else ['#EF4444']
     ax1.pie(
         prediction_counts['Count'], 
         labels=prediction_counts['Category'], 
         autopct='%1.1f%%',
         startangle=90,
-        colors=colors,
+        colors=prediction_counts['Color'],  # Use explicitly mapped colors
         wedgeprops={'edgecolor': 'white', 'width': 0.6}
     )
     ax1.axis('equal')
+    # Remove the 'Color' column before returning the DataFrame
+    prediction_counts = prediction_counts.drop(columns=['Color'], errors='ignore')
     plt.title('Distribution of Answers vs Non-Answers', size=16)
     
     # Create confidence distribution chart
@@ -281,7 +276,7 @@ def create_summary_charts(results):
         y=alt.Y('count():Q', title='Count'),
         color=alt.Color('prediction:N', 
                       scale=alt.Scale(domain=['answer', 'non-answer'], 
-                                    range=['#10B981', '#EF4444'])),
+                                    range=['#10B981', '#EF4444'])),  # Ensure consistent color mapping
         tooltip=['prediction:N', 'count():Q']
     ).properties(
         title='Classification Distribution'
@@ -293,7 +288,7 @@ def create_summary_charts(results):
         y=alt.Y('count():Q', title='Frequency'),
         color=alt.Color('prediction:N',
                       scale=alt.Scale(domain=['answer', 'non-answer'], 
-                                    range=['#10B981', '#EF4444'])),
+                                    range=['#10B981', '#EF4444'])),  # Ensure consistent color mapping
         tooltip=['confidence:Q', 'count():Q']
     ).properties(
         title='Confidence Distribution'
@@ -336,8 +331,8 @@ def main():
         st.session_state.test_mode = False
 
     # App header
-    st.markdown('<h1 class="main-header">Analyzer</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Analyze Distinguish between answers and non-answers</p>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">Earnings Call Analyzer</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Distinguishing Answers from Non-Answers in Earnings Call Statements or text files(.txt)</p>', unsafe_allow_html=True)
 
     # Load models - handle errors gracefully
     try:
@@ -365,6 +360,7 @@ def main():
                                       type="primary", 
                                       disabled='processing_text' in st.session_state)
 
+
         # Handle analysis initiation
         if analyze_button and text_input:
             with st.spinner("Preparing analysis..."):
@@ -377,23 +373,30 @@ def main():
                     }
                 else:
                     st.warning("No valid sentences found to analyze.")
+                    st.stop()
 
         # Handle ongoing processing
         if 'processing_text' in st.session_state:
             state = st.session_state.processing_text
             current_sentence = state['sentences'][state['current_index']]
             
-            with st.spinner(f"Analyzing sentence {state['current_index']+1} of {len(state['sentences'])}..."):
-                result = classify_and_reason(current_sentence, classifier_model, tokenizer)
-                state['results'].append(result)
-                state['current_index'] += 1
-            
+            try:
+                with st.spinner(f"Analyzing sentence {state['current_index'] + 1} of {len(state['sentences'])}..."):
+                    result = classify_and_reason(current_sentence, classifier_model, tokenizer)
+                    state['results'].append(result)
+                    state['current_index'] += 1
+            except Exception as e:
+                st.error(f"Error analyzing sentence: {str(e)}")
+                del st.session_state.processing_text
+                st.stop()
+
+            # Check if all sentences have been processed
             if state['current_index'] >= len(state['sentences']):
                 st.session_state.text_results = state['results']
                 del st.session_state.processing_text
             else:
-                st.experimental_rerun()
-
+                st.rerun()
+     
         # Display results
         results = []
         if 'processing_text' in st.session_state:
@@ -402,123 +405,48 @@ def main():
             results = st.session_state.text_results
 
         if results:
-            st.subheader("Analysis Results")
-            for result in results:
-                with st.container():
-                    st.markdown(f"""
-                    <div class="result-card">
-                        <p><strong>Statement:</strong> {result['text']}</p>
-                        <p>
-                            <strong>Classification:</strong> 
-                            <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
-                                {result['prediction'].upper()}
-                            </span>
-                            &nbsp;&nbsp;
-                            <strong>Confidence:</strong> 
-                            <span class="{get_confidence_class(result['confidence'])}">
-                                {result['confidence']*100:.1f}%
-                            </span>
-                        </p>
-                        <p><strong>Reasoning:</strong> {result['reasoning']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+            st.subheader("Analysis completed. Please check the results below:-")
             
-            # # Show summary if all results are ready
-            # if 'text_results' in st.session_state:
-            #     st.subheader("Summary")
-            #     fig1, chart, confidence_hist, prediction_counts = create_summary_charts(results)
-            #     col1, col2 = st.columns(2)
-            #     with col1:
-            #         st.pyplot(fig1)
-            #     with col2:
-            #         st.altair_chart(confidence_hist, use_container_width=True)
-            #     st.dataframe(prediction_counts, use_container_width=True)
-
-    # # Tab 2: Analyze File
-    # # with tab2:
-    #     st.subheader("📁 Analyze Text File")
-    #     uploaded_file = st.file_uploader("Upload a text file:", type=['txt'])
-        
-    #     if uploaded_file is not None:
-    #         file_content = uploaded_file.getvalue().decode("utf-8")
+            with st.expander("View All Results in Table form"):
+                results_df = create_results_table(results)
+                st.dataframe(results_df, use_container_width=True)
+                st.markdown(create_download_link(results_df), unsafe_allow_html=True)
             
-    #         with st.expander("File Preview", expanded=False):
-    #             st.text(file_content)
+            with st.expander("View All Results Sepately"):    
+                for result in results:
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="result-card">
+                            <p><strong>Statement:</strong> {result['text']}</p>
+                            <p>
+                                <strong>Classification:</strong> 
+                                <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
+                                    {result['prediction'].upper()}
+                                </span>
+                                &nbsp;&nbsp;
+                                <strong>Confidence:</strong> 
+                                <span class="{get_confidence_class(result['confidence'])}">
+                                    {result['confidence']*100:.1f}%
+                                </span>
+                            </p>
+                            <p><strong>Reasoning:</strong> {result['reasoning']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
             
-    #         analyze_file_button = st.button(
-    #             "Analyze File", 
-    #             type="primary",
-    #             disabled='processing_file' in st.session_state
-    #         )
-            
-    #         if analyze_file_button:
-    #             with st.spinner("Preparing file analysis..."):
-    #                 sentences = split_text_into_sentences(file_content)
-    #                 if sentences:
-    #                     st.session_state.processing_file = {
-    #                         'sentences': sentences,
-    #                         'current_index': 0,
-    #                         'results': []
-    #                     }
-    #                 else:
-    #                     st.warning("No valid sentences found in file.")
-
-    #     # Handle file processing
-    #     if 'processing_file' in st.session_state:
-    #         state = st.session_state.processing_file
-    #         current_sentence = state['sentences'][state['current_index']]
-            
-    #         with st.spinner(f"Analyzing sentence {state['current_index']+1} of {len(state['sentences'])}..."):
-    #             result = classify_and_reason(current_sentence, classifier_model, tokenizer)
-    #             state['results'].append(result)
-    #             state['current_index'] += 1
-            
-    #         if state['current_index'] >= len(state['sentences']):
-    #             st.session_state.file_results = state['results']
-    #             del st.session_state.processing_file
-    #         else:
-    #             st.experimental_rerun()
-
-    #     # Display file results
-    #     file_results = []
-    #     if 'processing_file' in st.session_state:
-    #         file_results = st.session_state.processing_file['results']
-    #     elif 'file_results' in st.session_state:
-    #         file_results = st.session_state.file_results
-
-    #     if file_results:
-    #         st.subheader("Analysis Results")
-    #         for result in file_results:
-    #             with st.container():
-    #                 st.markdown(f"""
-    #                 <div class="result-card">
-    #                     <p><strong>Statement:</strong> {result['text']}</p>
-    #                     <p>
-    #                         <strong>Classification:</strong> 
-    #                         <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
-    #                             {result['prediction'].upper()}
-    #                         </span>
-    #                         &nbsp;&nbsp;
-    #                         <strong>Confidence:</strong> 
-    #                         <span class="{get_confidence_class(result['confidence'])}">
-    #                             {result['confidence']*100:.1f}%
-    #                         </span>
-    #                     </p>
-    #                     <p><strong>Reasoning:</strong> {result['reasoning']}</p>
-    #                 </div>
-    #                 """, unsafe_allow_html=True)
-            
-    #         # Show summary if all results are ready
-    #         if 'file_results' in st.session_state:
-    #             st.subheader("Summary")
-    #             fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
-    #             col1, col2 = st.columns(2)
-    #             with col1:
-    #                 st.pyplot(fig1)
-    #             with col2:
-    #                 st.altair_chart(confidence_hist, use_container_width=True)
-    #             st.dataframe(prediction_counts, use_container_width=True)
-    #             st.markdown(create_download_link(create_results_table(file_results)), unsafe_allow_html=True)
+            with st.expander("View All Analytics"):
+                # Preserve original summary interface
+                if 'text_results' in st.session_state:
+                    st.subheader("Summary")
+                    fig1, chart, confidence_hist, prediction_counts = create_summary_charts(results)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.pyplot(fig1)
+                    with col2:
+                        st.altair_chart(confidence_hist, use_container_width=True)
+                    st.dataframe(prediction_counts, use_container_width=True)
+             
+           
     with tab2:
         st.subheader("📁 Analyze Text File")
         uploaded_file = st.file_uploader("Upload a text file:", type=['txt'])
@@ -561,7 +489,7 @@ def main():
                 st.session_state.file_results = state['results']
                 del st.session_state.processing_file
             else:
-                st.experimental_rerun()
+                st.rerun()
 
         # Display file results
         file_results = []
@@ -571,43 +499,50 @@ def main():
             file_results = st.session_state.file_results
 #here
         if file_results:
-            st.subheader("Analysis Results")
-            with st.expander("View All Results"):
+            st.subheader("Analysis completed. Please check the results below:-")
+            with st.expander("View All Results in Table form"):
                 results_df = create_results_table(file_results)
                 st.dataframe(results_df, use_container_width=True)
                 st.markdown(create_download_link(results_df), unsafe_allow_html=True)
             
-            # Preserve original summary interface
-            if 'file_results' in st.session_state:
-                st.subheader("Summary")
-                fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.pyplot(fig1)
-                with col2:
-                    st.altair_chart(confidence_hist, use_container_width=True)
-                st.dataframe(prediction_counts, use_container_width=True)
+            with st.expander("View All Results Separately"):
+                for result in file_results:
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="result-card">
+                            <p><strong>Statement:</strong> {result['text']}</p>
+                            <p>
+                                <strong>Classification:</strong> 
+                                <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
+                                    {result['prediction'].upper()}
+                                </span>
+                                &nbsp;&nbsp;
+                                <strong>Confidence:</strong> 
+                                <span class="{get_confidence_class(result['confidence'])}">
+                                    {result['confidence']*100:.1f}%
+                                </span>
+                            </p>
+                            <p><strong>Reasoning:</strong> {result['reasoning']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
             
-            for result in file_results:
-                with st.container():
-                    st.markdown(f"""
-                    <div class="result-card">
-                        <p><strong>Statement:</strong> {result['text']}</p>
-                        <p>
-                            <strong>Classification:</strong> 
-                            <span class="{'answer-tag' if result['prediction'] == 'answer' else 'non-answer-tag'}">
-                                {result['prediction'].upper()}
-                            </span>
-                            &nbsp;&nbsp;
-                            <strong>Confidence:</strong> 
-                            <span class="{get_confidence_class(result['confidence'])}">
-                                {result['confidence']*100:.1f}%
-                            </span>
-                        </p>
-                        <p><strong>Reasoning:</strong> {result['reasoning']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
             
+            with st.expander("View All Analytics"):
+                # Preserve original summary interface
+                if 'file_results' in st.session_state:
+                    st.subheader("Summary")
+                    fig1, chart, confidence_hist, prediction_counts = create_summary_charts(file_results)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.pyplot(fig1)
+                    with col2:
+                        st.altair_chart(confidence_hist, use_container_width=True)
+                    st.dataframe(prediction_counts, use_container_width=True)
+            
+        st.info("""
+            **Note**: Please upload a file containing only 20-25 lines to ensure a quick analysis. \n
+            This limitation is due to computational constraints in the deployment environment.
+            """)
           
 # Tab 3: About
     with tab3:
@@ -643,7 +578,10 @@ def main():
             st.markdown("""
             <div class="custom-expander">
                 <h3>About this Tool</h3>
-                <p>This tool is desgined to help earning call analyzers with intuitive and interactive interface !  </p>
+                <p> 
+                Our Earnings Call Analyzer is a powerful Streamlit-based tool that leverages a fine-tuned GPT-2 model with a classifier head, trained on 1,700+ statements to accurately distinguish between answers and non-answers during earnings calls. 
+                The intuitive and user-friendly interface makes it easy for financial analysts and professionals to quickly analyze large volumes of call transcripts, providing clear insights into which responses contain valuable information. This tool streamlines the analysis process, saving time and enhancing decision-making by highlighting the most informative segments. 
+                </p>
             </div>
             """, unsafe_allow_html=True)
             # st.markdown("""
@@ -675,7 +613,15 @@ def main():
             st.markdown("""
             <div class="custom-expander">
                 <h3>About Our Team</h3>
-                <p>Team XYZ is a group of passionate data scientists, financial analysts, and software engineers dedicated to building innovative tools for financial analysis.</p>
+                <p>
+                Team Name: Fintech Mavericks<br>
+                Domain : Finance<br>
+                Team Members:- <br>
+                1) Utsav Soni (soniutsav22@gmail.com)<br>
+                2) Nithin G   (nithinnayak165@gmil.com)<br>
+                3) Syed Shahbuddin (syedshahbuddin2803@gmail.com)<br>
+                4) Siddhesh Sharma (siddheshsharma808@gmail.com)<br>
+                </p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -691,6 +637,7 @@ def main():
             image1 = Image.open("images/team.jpg")  # Replace with your image path
             image2 = Image.open("images/team.jpg")  # Replace with your image path
             image3 = Image.open("images/team.jpg")  # Replace with your image path
+
 
             # Display images in a grid layout
             col1, col2, col3 = st.columns(3)
