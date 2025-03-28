@@ -634,16 +634,15 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             # Load local images
-            image1 = Image.open("images/team1.jpg")  # Replace with your image path
-            image2 = Image.open("images/team2.jpg")  # Replace with your image path
-            image3 = Image.open("images/team3.jpg")  # Replace with your image path
-            image4 = Image.open("images/team4.jpg")  # Replace with your image path
+            image1 = Image.open("images/team1.png")  # Replace with your image path
+            image2 = Image.open("images/team2.png")  # Replace with your image path
+            image3 = Image.open("images/team3.png")  # Replace with your image path
+            
 
             # Display images in a grid layout
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.image(image1, caption="Dataset Distribution", use_container_width=True)
-                st.image(image4, caption="Model Evaluation", use_container_width=True)
             with col2:
                 st.image(image2, caption="Classification Report", use_container_width=True)
             with col3:
