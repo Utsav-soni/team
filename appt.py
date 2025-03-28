@@ -618,7 +618,7 @@ def main():
                 Domain : Finance<br>
                 Team Members:- <br>
                 1) Utsav Soni (soniutsav22@gmail.com)<br>
-                2) Nithin G   (nithinnayak165@gmil.com)<br>
+                2) Nithin G   (nithinnayak165@gmail.com)<br>
                 3) Syed Shahbuddin (syedshahbuddin2803@gmail.com)<br>
                 4) Siddhesh Sharma (siddheshsharma808@gmail.com)<br>
                 </p>
@@ -634,19 +634,20 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             # Load local images
-            image1 = Image.open("images/team.jpg")  # Replace with your image path
-            image2 = Image.open("images/team.jpg")  # Replace with your image path
-            image3 = Image.open("images/team.jpg")  # Replace with your image path
-
+            image1 = Image.open("images/team1.jpg")  # Replace with your image path
+            image2 = Image.open("images/team2.jpg")  # Replace with your image path
+            image3 = Image.open("images/team3.jpg")  # Replace with your image path
+            image4 = Image.open("images/team4.jpg")  # Replace with your image path
 
             # Display images in a grid layout
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.image(image1, caption="Image 1", use_container_width=True)
+                st.image(image1, caption="Dataset Distribution", use_container_width=True)
+                st.image(image4, caption="Model Evaluation", use_container_width=True
             with col2:
-                st.image(image2, caption="Image 2", use_container_width=True)
+                st.image(image2, caption="Classification Report", use_container_width=True)
             with col3:
-                st.image(image3, caption="Image 3", use_container_width=True)
+                st.image(image3, caption="Confusion Matrix", use_container_width=True)
 
         # Links Section
         with st.expander("Useful Links 🔗", expanded=False):
@@ -663,16 +664,16 @@ def main():
             """, unsafe_allow_html=True)
 
         # Contact Section
-        with st.expander("Contact 📧", expanded=False):
-            st.markdown("""
-            <div class="custom-expander">
-                <h3>Contact Us</h3>
-                <p>If you have any questions or feedback, feel free to reach out:</p>
-                <ul>
-                    <li>Email: <a href="mailto:teamxyz@example.com">teamxyz@example.com</a></li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
+        # with st.expander("Contact 📧", expanded=False):
+        #     st.markdown("""
+        #     <div class="custom-expander">
+        #         <h3>Contact Us</h3>
+        #         <p>If you have any questions or feedback, feel free to reach out:</p>
+        #         <ul>
+        #             <li>Email: <a href="mailto:teamxyz@example.com">teamxyz@example.com</a></li>
+        #         </ul>
+        #     </div>
+        #     """, unsafe_allow_html=True)
 
 
         # Disclaimer
