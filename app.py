@@ -636,7 +636,7 @@ def main():
             # Load local images
             image1 = Image.open("images/team1.png")  # Replace with your image path
             image2 = Image.open("images/team2.png")  # Replace with your image path
-            image3 = Image.open("images/team3.png")  # Replace with your image path
+            image3 = Image.open("images/team.jpg")  # Replace with your image path
             
 
             # Display images in a grid layout
