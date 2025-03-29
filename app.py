@@ -151,10 +151,10 @@ def generate_reasoning(text, prediction):
     {
         "role": "system", 
         "content": """
-                    You are earning call analyzer and you are supporting the given statement
-                    with given label, it could be answer or non-answer.
+                    You are earning call analyzer, and you are supporting the given statement
+                    with a given label, it could bean  answer or non-answer.
                     And your justification must be a reason that why that
-                    statement is got particulat label by the custom fine-tuned model.
+                    statement is given a particular label by the custom fine-tuned model.
                    """
     },
     {
@@ -331,7 +331,7 @@ def main():
         st.session_state.test_mode = False
 
     # App header
-    st.markdown('<h1 class="main-header">Earnings Call Analyzer</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">Earnings Call Analyzer by Team Fintech Mavericks!</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Distinguishing Answers from Non-Answers in Earnings Call Statements or text files(.txt)</p>', unsafe_allow_html=True)
 
     # Load models - handle errors gracefully
