@@ -1,6 +1,6 @@
 streamlit
 torch
-transformers
+transformers==4.50.2
 numpy
 pandas
 matplotlib
