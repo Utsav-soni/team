@@ -98,6 +98,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Define labels
 LABELS = ["answer", "non-answer"]
 
+from huggingface_hub import snapshot_download
+snapshot_download(repo_id="UtsavS/financial-earnings-call-classifier-final", repo_type="model")
 
 @st.cache_resource
 def load_models():
@@ -106,7 +108,7 @@ def load_models():
     
     # Directly specify your Hugging Face model repository
     model_repo = "UtsavS/financial-earnings-call-classifier-final"
-    
+
     try:
         # Load the classification model from Hugging Face
         classifier_model = AutoModelForSequenceClassification.from_pretrained(model_repo)
